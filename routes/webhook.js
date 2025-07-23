@@ -1,37 +1,56 @@
-// routes/webhook.js
-
 const express = require('express');
 const router = express.Router();
-const { searchAndRespond } = require('../utils/searchAndRespond');
+const sendMessage = require('../utils/sendMessage'); // ✅ Import correctly
 
 router.post('/', async (req, res) => {
   try {
     console.log('📩 Webhook triggered!');
-    console.log('🧾 Payload received:', req.body);
+    const payload = req.body;
 
-    const data = req.body.data;
+    console.log('🧾 Payload received:', JSON.stringify(payload, null, 2));
 
-    if (!data || data.type !== 'chat') {
+    const eventType = payload.event_type;
+    const messageData = payload.data;
+
+    // Only proceed if it's a message_create event and it's a user (not self) message
+    if (eventType === 'message_create' && messageData?.fromMe === false) {
+      const senderId = messageData.from;
+      const messageText = messageData.body.toLowerCase();
+
+      console.log(`💬 Incoming message from ${senderId}: ${messageText}`);
+      console.log('🔍 Processing message:', messageText);
+
+      // Basic message logic
+      if (messageText.includes('pizza')) {
+        const reply = `🍕 Top Pizza Places Near You:
+1. Dominos - ETA: 30 mins
+2. Oven Story - ETA: 35 mins
+3. Pizza Hut - ETA: 40 mins
+
+Reply with 1, 2 or 3 to choose.`;
+
+        await sendMessage(senderId, reply);
+      } else if (['1', '2', '3'].includes(messageText.trim())) {
+        const replies = {
+          '1': '✅ You selected Dominos! We are placing your order. 🍕 ETA: 30 mins.',
+          '2': '✅ You selected Oven Story! We are placing your order. 🍕 ETA: 35 mins.',
+          '3': '✅ You selected Pizza Hut! We are placing your order. 🍕 ETA: 40 mins.',
+        };
+        await sendMessage(senderId, replies[messageText.trim()]);
+      } else {
+        const fallback = '🤖 I can help you find food. Try texting "I want pizza" 🍕';
+        await sendMessage(senderId, fallback);
+      }
+
+      console.log(`✅ Message sent to ${senderId}`);
+    } else {
       console.log('ℹ️ Non-chat message received. Ignoring.');
-      return res.status(200).send('Ignored non-chat message');
     }
 
-    const incomingMsg = data.body?.toLowerCase();
-    const from = data.from?.replace('@c.us', ''); // clean phone number
-
-    if (!incomingMsg || !from) {
-      console.log('❌ Missing "body" or "from" in request');
-      return res.status(400).send('Bad Request: Missing body or from');
-    }
-
-    console.log(`💬 Incoming message from ${from}: ${incomingMsg}`);
-
-    await searchAndRespond(from, incomingMsg);
-    return res.status(200).send('Processed');
-    
+    res.sendStatus(200);
   } catch (error) {
     console.error('🔥 Error handling webhook:', error.message);
-    res.status(500).send('Internal Server Error');
+    res.sendStatus(500);
   }
 });
 

@@ -1,7 +1,9 @@
+// routes/webhook.js
+
 const express = require('express');
 const router = express.Router();
-const sendMessage = require('../utils/sendMessage');
-const searchAndRespond = require('../utils/searchAndRespond');
+const { sendMessage } = require('../utils/sendMessage');
+const { searchAndRespond } = require('../utils/searchAndRespond');
 
 router.post('/', async (req, res) => {
   try {
@@ -26,7 +28,7 @@ router.post('/', async (req, res) => {
 
     if (incomingMsg.startsWith('i want')) {
       await searchAndRespond(from, incomingMsg);
-      return res.status(200).send('Handled by searchAndRespond');
+      return res.status(200).send('Search triggered');
     } else if (['1', '2', '3'].includes(incomingMsg)) {
       const selection = parseInt(incomingMsg);
       await sendMessage(from, `✅ Great choice! Your order for option ${selection} is being processed. You'll receive updates here on WhatsApp. 🛵`);

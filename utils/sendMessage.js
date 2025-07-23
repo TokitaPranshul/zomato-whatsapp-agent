@@ -1,11 +1,12 @@
 // utils/sendMessage.js
+
 const axios = require('axios');
 const instanceId = process.env.ULTRA_INSTANCE_ID;
 const token = process.env.ULTRA_TOKEN;
 
 async function sendMessage(to, message) {
   const payload = {
-    to, // dynamic user number
+    to,
     body: message
   };
 
@@ -18,10 +19,10 @@ async function sendMessage(to, message) {
         'token': token
       }
     });
-    console.log(`✅ Message sent to ${to}:`, message);
+    console.log("✅ Message sent:", message);
   } catch (error) {
     console.error("❌ Error sending message:", error.message);
   }
 }
 
-module.exports = sendMessage;
+module.exports = { sendMessage };

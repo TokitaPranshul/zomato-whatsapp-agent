@@ -1,21 +1,16 @@
 {
-  "name": "zomato-whatsapp-agent",
+  "name": "zomato-agent",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "WhatsApp Zomato agent",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "axios": "^1.11.0",
-    "body-parser": "^2.2.0",
+    "axios": "^1.6.7",
+    "body-parser": "^1.20.2",
     "dotenv": "^17.2.0",
-    "express": "^5.1.0",
-    "puppeteer": "^24.15.0"
+    "express": "^4.19.2",
+    "puppeteer": "^21.3.8"
   }
 }

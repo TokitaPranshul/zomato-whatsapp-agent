@@ -1,45 +1,35 @@
-// utils/handleSearch.js
+const puppeteer = require('puppeteer');
 
-const sendMessage = require("./sendMessage");
-const puppeteer = require("puppeteer");
+async function handleSearch(query) {
+  console.log(`🔍 Launching headless browser to search for: ${query}`);
 
-async function handleSearch(query, from) {
-  try {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox']
+  });
 
-    // Go to Zomato search results for the query near Noida Sector 45
-    const zomatoUrl = `https://www.zomato.com/ncr/restaurants?q=${encodeURIComponent(query)}`;
-    await page.goto(zomatoUrl, { waitUntil: "networkidle2" });
+  const page = await browser.newPage();
+  await page.goto(`https://www.zomato.com/ncr/restaurants?q=${encodeURIComponent(query)}`, {
+    waitUntil: 'networkidle2',
+  });
 
-    // Wait for restaurants to load
-    await page.waitForSelector(".sc-beySbM.hVjKrc", { timeout: 10000 });
+  // Wait for restaurant listings to load
+  await page.waitForSelector('[data-testid="serp-restaurant-card"]');
 
-    // Extract top 3 restaurant names & links
-    const results = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll(".sc-beySbM.hVjKrc"));
-      return cards.slice(0, 3).map(card => {
-        const name = card.querySelector("h4")?.innerText || "Unnamed";
-        const link = card.querySelector("a")?.href || "";
-        return { name, link };
-      });
+  const results = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('[data-testid="serp-restaurant-card"]'));
+    return cards.slice(0, 3).map(card => {
+      const name = card.querySelector('h4')?.innerText || 'No name';
+      const cuisine = card.querySelector('[data-testid="res-cuisine-list"]')?.innerText || 'No cuisine info';
+      const rating = card.querySelector('[data-testid="rating"]')?.innerText || 'No rating';
+      return `${name} - ${cuisine} - ⭐ ${rating}`;
     });
+  });
 
-    await browser.close();
+  await browser.close();
+  console.log(`✅ Scraped top ${results.length} result(s):`, results);
 
-    if (!results.length) {
-      await sendMessage(from, "❌ Sorry, couldn't find any places matching your request.");
-      return;
-    }
-
-    const reply = `🍽️ Top options for *${query}* near you:\n\n` +
-      results.map((r, i) => `*${i + 1}. ${r.name}*\n${r.link}`).join("\n\n");
-
-    await sendMessage(from, reply);
-  } catch (error) {
-    console.error("🔴 Error in handleSearch:", error);
-    await sendMessage(from, "⚠️ Oops! Something went wrong while searching Zomato.");
-  }
+  return results;
 }
 
 module.exports = handleSearch;

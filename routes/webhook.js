@@ -1,40 +1,52 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const sendMessage = require("../utils/sendMessage");
-const handleSearch = require("../utils/handleSearch");
+const { sendMessage } = require('../utils/sendMessage');
+const handleSearch = require('../utils/handleSearch'); // ← We call this now!
 
-router.post("/", async (req, res) => {
-  console.log("📩 Webhook triggered!");
+// UltraMsg webhook listener
+router.post('/', async (req, res) => {
   const payload = req.body;
-  console.log("🧾 Payload received:", JSON.stringify(payload, null, 2));
+  console.log('📩 Webhook triggered!');
+  console.log('🧾 Payload received:', JSON.stringify(payload, null, 2));
 
-  const message = payload?.data?.body?.toLowerCase();
-  const from = payload?.data?.from;
-
-  if (payload.event_type !== "message_received") {
-    console.log("ℹ️ Non-chat or system message received. Ignoring.");
+  const { event_type, data } = payload;
+  if (event_type !== 'message_create') {
+    console.log('ℹ️ Non-chat or system message received. Ignoring.');
     return res.sendStatus(200);
   }
 
-  if (!message || !from) {
-    console.log("❌ Missing message or sender info.");
-    return res.sendStatus(400);
-  }
+  const senderId = data.from;
+  const messageText = data.body?.toLowerCase() || '';
 
-  if (message.includes("i want") || message.includes("get me")) {
-    await sendMessage(from, "🍕 Looking for food places near you...\n(Imagine we’re checking Zomato here...)");
+  // Step 1: Basic food query detection
+  const foodQuery = messageText.match(/i want (.+)/i);
+  if (foodQuery) {
+    const foodItem = foodQuery[1].trim();
+    console.log(`🍽️ Food search detected: "${foodItem}"`);
 
+    // Step 2: Call Puppeteer to scrape Zomato
     try {
-      const results = await handleSearch(message);
-      await sendMessage(from, results); // formatted top 3 links
+      const results = await handleSearch(foodItem);
+
+      if (results.length === 0) {
+        await sendMessage(senderId, `😞 Sorry, I couldn't find any places for "${foodItem}".`);
+      } else {
+        const formatted = results
+          .map((res, idx) => `${idx + 1}. *${res.name}*\n${res.link}`)
+          .join('\n\n');
+
+        await sendMessage(senderId, `🍽️ Here are some top places for *${foodItem}* near you:\n\n${formatted}`);
+      }
     } catch (err) {
-      console.error("❌ Error handling search:", err);
-      await sendMessage(from, "❌ Sorry, something went wrong while searching.");
+      console.error('❌ Error during search:', err.message);
+      await sendMessage(senderId, '⚠️ Something went wrong while searching. Please try again later.');
     }
-  } else {
-    await sendMessage(from, "🤖 I can help you find food. Try texting something like 'I want pizza' 🍕");
+
+    return res.sendStatus(200);
   }
 
+  // Default response for other messages
+  await sendMessage(senderId, "🤖 I can help you find food. Try texting something like 'I want pizza' 🍕");
   res.sendStatus(200);
 });
 

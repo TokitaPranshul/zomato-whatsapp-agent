@@ -1,4 +1,13 @@
 #!/bin/bash
-echo "📦 Installing dependencies manually..."
+
+# Render deploy script
 npm install
-echo "✅ Build complete"
+
+# You can add playwright install if needed for Chromium:
+npx playwright install chromium
+
+# You could also add export lines if environment vars needed
+# export INSTANCE_ID=...
+# export WHATSAPP_TOKEN=...
+
+node index.js

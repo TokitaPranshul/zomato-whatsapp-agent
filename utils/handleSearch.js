@@ -5,7 +5,7 @@ async function handleSearch(query) {
 
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox']
+    args: ['--no-sandbox'],
   });
 
   const page = await browser.newPage();
@@ -13,7 +13,6 @@ async function handleSearch(query) {
     waitUntil: 'networkidle2',
   });
 
-  // Wait for restaurant listings to load
   await page.waitForSelector('[data-testid="serp-restaurant-card"]');
 
   const results = await page.evaluate(() => {

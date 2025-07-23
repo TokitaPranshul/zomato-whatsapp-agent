@@ -2,7 +2,6 @@
 
 const express = require('express');
 const router = express.Router();
-const { sendMessage } = require('../utils/sendMessage');
 const { searchAndRespond } = require('../utils/searchAndRespond');
 
 router.post('/', async (req, res) => {
@@ -10,14 +9,15 @@ router.post('/', async (req, res) => {
     console.log('📩 Webhook triggered!');
     console.log('🧾 Payload received:', req.body);
 
-    const messageType = req.body.type;
-    if (messageType !== 'chat') {
+    const data = req.body.data;
+
+    if (!data || data.type !== 'chat') {
       console.log('ℹ️ Non-chat message received. Ignoring.');
       return res.status(200).send('Ignored non-chat message');
     }
 
-    const incomingMsg = req.body.body?.toLowerCase();
-    const from = req.body.from;
+    const incomingMsg = data.body?.toLowerCase();
+    const from = data.from?.replace('@c.us', ''); // clean phone number
 
     if (!incomingMsg || !from) {
       console.log('❌ Missing "body" or "from" in request');
@@ -26,18 +26,9 @@ router.post('/', async (req, res) => {
 
     console.log(`💬 Incoming message from ${from}: ${incomingMsg}`);
 
-    if (incomingMsg.startsWith('i want')) {
-      await searchAndRespond(from, incomingMsg);
-      return res.status(200).send('Search triggered');
-    } else if (['1', '2', '3'].includes(incomingMsg)) {
-      const selection = parseInt(incomingMsg);
-      await sendMessage(from, `✅ Great choice! Your order for option ${selection} is being processed. You'll receive updates here on WhatsApp. 🛵`);
-      return res.status(200).send('Order confirmed');
-    } else {
-      await sendMessage(from, `👋 Hi! Tell me what you're craving, like: "I want Pizza from Dominos"`);
-      return res.status(200).send('Prompt sent');
-    }
-
+    await searchAndRespond(from, incomingMsg);
+    return res.status(200).send('Processed');
+    
   } catch (error) {
     console.error('🔥 Error handling webhook:', error.message);
     res.status(500).send('Internal Server Error');

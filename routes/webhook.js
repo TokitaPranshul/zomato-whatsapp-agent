@@ -1,56 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const sendMessage = require('../utils/sendMessage'); // ✅ Import correctly
+const sendMessage = require('../utils/sendMessage');
+const handleSearch = require('../utils/handleSearch'); // if you split logic
+const parseIntent = require('../utils/parseIntent');   // optional
 
 router.post('/', async (req, res) => {
   try {
-    console.log('📩 Webhook triggered!');
     const payload = req.body;
-
+    console.log('📩 Webhook triggered!');
     console.log('🧾 Payload received:', JSON.stringify(payload, null, 2));
 
-    const eventType = payload.event_type;
-    const messageData = payload.data;
+    const data = payload.data;
 
-    // Only proceed if it's a message_create event and it's a user (not self) message
-    if (eventType === 'message_create' && messageData?.fromMe === false) {
-      const senderId = messageData.from;
-      const messageText = messageData.body.toLowerCase();
+    // Process only incoming chat messages from real users
+    if (
+      payload.event_type === 'message_received' &&
+      data.type === 'chat' &&
+      data.fromMe === false
+    ) {
+      const userMessage = data.body.toLowerCase().trim();
+      const senderId = data.from;
 
-      console.log(`💬 Incoming message from ${senderId}: ${messageText}`);
-      console.log('🔍 Processing message:', messageText);
+      console.log(`💬 Incoming message from ${senderId}: ${userMessage}`);
 
-      // Basic message logic
-      if (messageText.includes('pizza')) {
-        const reply = `🍕 Top Pizza Places Near You:
-1. Dominos - ETA: 30 mins
-2. Oven Story - ETA: 35 mins
-3. Pizza Hut - ETA: 40 mins
-
-Reply with 1, 2 or 3 to choose.`;
-
-        await sendMessage(senderId, reply);
-      } else if (['1', '2', '3'].includes(messageText.trim())) {
-        const replies = {
-          '1': '✅ You selected Dominos! We are placing your order. 🍕 ETA: 30 mins.',
-          '2': '✅ You selected Oven Story! We are placing your order. 🍕 ETA: 35 mins.',
-          '3': '✅ You selected Pizza Hut! We are placing your order. 🍕 ETA: 40 mins.',
-        };
-        await sendMessage(senderId, replies[messageText.trim()]);
+      // ✨ Add your basic NLP or intent parser here
+      if (userMessage.includes('pizza')) {
+        const response = `🍕 Looking for pizza places near you...\n(Imagine we’re checking Zomato here...)`;
+        await sendMessage(senderId, response);
       } else {
-        const fallback = '🤖 I can help you find food. Try texting "I want pizza" 🍕';
-        await sendMessage(senderId, fallback);
+        const defaultReply = `🤖 I can help you find food. Try texting "I want pizza" 🍕`;
+        await sendMessage(senderId, defaultReply);
       }
 
-      console.log(`✅ Message sent to ${senderId}`);
+      res.status(200).send('Processed');
     } else {
-      console.log('ℹ️ Non-chat message received. Ignoring.');
+      console.log('ℹ️ Non-chat or system message received. Ignoring.');
+      res.status(200).send('Ignored');
     }
-
-    res.sendStatus(200);
   } catch (error) {
-    console.error('🔥 Error handling webhook:', error.message);
-    res.sendStatus(500);
+    console.error('🔥 Error handling webhook:', error);
+    res.status(500).send('Server error');
   }
 });
 

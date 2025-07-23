@@ -1,19 +1,28 @@
 // utils/sendMessage.js
-const axios = require("axios");
-require("dotenv").config();
 
-const sendMessage = async (to, message) => {
+const axios = require('axios');
+const instanceId = process.env.ULTRA_INSTANCE_ID;
+const token = process.env.ULTRA_TOKEN;
+
+async function sendMessage(message) {
+  const payload = {
+    to: process.env.MY_PHONE_NUMBER, // Must be a valid WhatsApp number with country code
+    body: message
+  };
+
+  const url = `https://api.ultramsg.com/${instanceId}/messages/chat`;
+
   try {
-    const url = `https://api.ultramsg.com/${process.env.INSTANCE_ID}/messages/chat?token=${process.env.TOKEN}`;
-    const response = await axios.post(url, {
-      to,
-      body: message,
-      priority: 10
+    await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'token': token
+      }
     });
-    console.log("✅ WhatsApp message sent:", message);
+    console.log("✅ Message sent:", message);
   } catch (error) {
-    console.error("❌ Failed to send WhatsApp message:", error.message);
+    console.error("❌ Error sending message:", error.message);
   }
-};
+}
 
 module.exports = { sendMessage };

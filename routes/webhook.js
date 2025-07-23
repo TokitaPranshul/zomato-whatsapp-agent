@@ -1,30 +1,23 @@
 // routes/webhook.js
-const express = require("express");
+
+const express = require('express');
 const router = express.Router();
-const { sendMessage } = require("../utils/sendMessage");
-const { searchAndRespond, handleSelection } = require("../utils/loginZomato");
+const { searchAndRespond } = require('../utils/searchAndRespond');
 
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
+  const message = req.body?.body?.message;
+
+  if (!message) {
+    console.log("⚠️ No message received in webhook");
+    return res.sendStatus(400);
+  }
+
   try {
-    const body = req.body;
-    const msg = body?.data?.body;
-    const from = body?.data?.from || body?.data?.author;
-
-    if (!msg || !from) return res.sendStatus(200);
-    if (body?.data?.fromMe) return res.sendStatus(200);
-
-    console.log("📩 Message:", msg);
-
-    if (/^\s*[1-3]\s*$/.test(msg)) {
-      await handleSelection(from, msg);
-    } else {
-      await searchAndRespond(from, msg);
-    }
-
+    await searchAndRespond(message);
     res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ Webhook error:", err.message);
-    res.sendStatus(500);
+  } catch (error) {
+    console.error("❌ Webhook error:", error.message);
+    res.status(500).send("Error processing webhook");
   }
 });
 

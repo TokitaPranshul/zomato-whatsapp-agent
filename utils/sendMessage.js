@@ -6,7 +6,7 @@ const token = process.env.ULTRA_TOKEN;
 
 async function sendMessage(to, message) {
   const payload = {
-    to: `+${to}`, // ensure correct formatting
+    to: to.includes('@c.us') ? to : `${to}@c.us`, // ensure correct format
     body: message
   };
 
@@ -19,9 +19,9 @@ async function sendMessage(to, message) {
         'token': token
       }
     });
-    console.log("✅ Message sent to", to, ":", message);
+    console.log("✅ Message sent to", payload.to, ":", message);
   } catch (error) {
-    console.error("❌ Error sending message:", error.message);
+    console.error("❌ Error sending message:", error.response?.data || error.message);
   }
 }
 

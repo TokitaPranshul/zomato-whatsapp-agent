@@ -1,46 +1,41 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const sendMessage = require('../utils/sendMessage');
-const handleSearch = require('../utils/handleSearch'); // if you split logic
-const parseIntent = require('../utils/parseIntent');   // optional
+const sendMessage = require("../utils/sendMessage");
+const handleSearch = require("../utils/handleSearch");
 
-router.post('/', async (req, res) => {
-  try {
-    const payload = req.body;
-    console.log('📩 Webhook triggered!');
-    console.log('🧾 Payload received:', JSON.stringify(payload, null, 2));
+router.post("/", async (req, res) => {
+  console.log("📩 Webhook triggered!");
+  const payload = req.body;
+  console.log("🧾 Payload received:", JSON.stringify(payload, null, 2));
 
-    const data = payload.data;
+  const message = payload?.data?.body?.toLowerCase();
+  const from = payload?.data?.from;
 
-    // Process only incoming chat messages from real users
-    if (
-      payload.event_type === 'message_received' &&
-      data.type === 'chat' &&
-      data.fromMe === false
-    ) {
-      const userMessage = data.body.toLowerCase().trim();
-      const senderId = data.from;
-
-      console.log(`💬 Incoming message from ${senderId}: ${userMessage}`);
-
-      // ✨ Add your basic NLP or intent parser here
-      if (userMessage.includes('pizza')) {
-        const response = `🍕 Looking for pizza places near you...\n(Imagine we’re checking Zomato here...)`;
-        await sendMessage(senderId, response);
-      } else {
-        const defaultReply = `🤖 I can help you find food. Try texting "I want pizza" 🍕`;
-        await sendMessage(senderId, defaultReply);
-      }
-
-      res.status(200).send('Processed');
-    } else {
-      console.log('ℹ️ Non-chat or system message received. Ignoring.');
-      res.status(200).send('Ignored');
-    }
-  } catch (error) {
-    console.error('🔥 Error handling webhook:', error);
-    res.status(500).send('Server error');
+  if (payload.event_type !== "message_received") {
+    console.log("ℹ️ Non-chat or system message received. Ignoring.");
+    return res.sendStatus(200);
   }
+
+  if (!message || !from) {
+    console.log("❌ Missing message or sender info.");
+    return res.sendStatus(400);
+  }
+
+  if (message.includes("i want") || message.includes("get me")) {
+    await sendMessage(from, "🍕 Looking for food places near you...\n(Imagine we’re checking Zomato here...)");
+
+    try {
+      const results = await handleSearch(message);
+      await sendMessage(from, results); // formatted top 3 links
+    } catch (err) {
+      console.error("❌ Error handling search:", err);
+      await sendMessage(from, "❌ Sorry, something went wrong while searching.");
+    }
+  } else {
+    await sendMessage(from, "🤖 I can help you find food. Try texting something like 'I want pizza' 🍕");
+  }
+
+  res.sendStatus(200);
 });
 
 module.exports = router;

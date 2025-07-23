@@ -1,35 +1,21 @@
-const express = require('express');
+// routes/webhook.js
+const express = require("express");
 const router = express.Router();
+const sendMessage = require("../utils/sendMessage");
+const handleSearch = require("../utils/handleSearch");
 
-const sendMessage = require('../utils/sendMessage');
-const handleSearch = require('../utils/handleSearch');
-
-router.post('/', async (req, res) => {
-  const message = req.body.body?.toLowerCase() || '';
-  const from = req.body.from;
-
-  if (!message || !from) {
-    return res.sendStatus(400);
-  }
+router.post("/", async (req, res) => {
+  const { from, body } = req.body;
+  console.log(`📥 Message from ${from}: ${body}`);
 
   try {
-    // Respond to user with "Searching..."
-    await sendMessage(from, `🔍 Searching Zomato for: *${message}*...`);
-
-    const results = await handleSearch(message);
-
-    if (results.length === 0) {
-      await sendMessage(from, `😕 No restaurants found for: *${message}*`);
-    } else {
-      for (const result of results) {
-        await sendMessage(from, `🍽️ ${result}`);
-      }
-    }
-
+    const results = await handleSearch(body);
+    const reply = `Top matches for "${body}":\n\n${results.map((r, i) => `${i + 1}. ${r}`).join("\n")}`;
+    await sendMessage(from, reply);
     res.sendStatus(200);
   } catch (err) {
-    console.error('❌ Webhook error:', err.message);
-    await sendMessage(from, '⚠️ Something went wrong. Please try again.');
+    console.error("❌ Error:", err.message);
+    await sendMessage(from, "Something went wrong! 🧯 Please try again later.");
     res.sendStatus(500);
   }
 });

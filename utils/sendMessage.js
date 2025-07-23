@@ -1,28 +1,43 @@
-// utils/sendMessage.js
-
 const axios = require('axios');
-const instanceId = process.env.ULTRA_INSTANCE_ID;
-const token = process.env.ULTRA_TOKEN;
+
+const instanceId = 'instance134485';
+const token = '6kwhw3348pb4xfjj';
+const API_URL = `https://api.ultramsg.com/${instanceId}/messages/chat`;
+
+function formatChatId(numberOrChatId) {
+  // Ensures the number is in international format and ends with @c.us
+  const cleaned = numberOrChatId.replace(/\D/g, '');
+  return cleaned.endsWith('@c.us') ? cleaned : `${cleaned}@c.us`;
+}
 
 async function sendMessage(to, message) {
-  const payload = {
-    to: to.includes('@c.us') ? to : `${to}@c.us`, // ensure correct format
-    body: message
-  };
+  const chatId = formatChatId(to);
 
-  const url = `https://api.ultramsg.com/${instanceId}/messages/chat`;
+  console.log('📤 Attempting to send WhatsApp message...');
+  console.log('➡️ To:', chatId);
+  console.log('💬 Message:', message);
 
   try {
-    await axios.post(url, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'token': token
-      }
+    const response = await axios.post(API_URL, {
+      to: chatId,
+      body: message,
+      priority: 10,
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      params: { token },
     });
-    console.log("✅ Message sent to", payload.to, ":", message);
+
+    console.log('✅ UltraMsg API response:', response.data);
+    return response.data;
   } catch (error) {
-    console.error("❌ Error sending message:", error.response?.data || error.message);
+    console.error('❌ Failed to send message');
+    if (error.response) {
+      console.error('📄 Status:', error.response.status);
+      console.error('📦 Response:', error.response.data);
+    } else {
+      console.error('🚨 Error:', error.message);
+    }
   }
 }
 
-module.exports = { sendMessage };
+module.exports = sendMessage;

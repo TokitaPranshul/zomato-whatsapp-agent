@@ -1,12 +1,12 @@
 // utils/searchAndRespond.js
+const sendMessage = require('./sendMessage');
 
-const { sendMessage } = require('./sendMessage');
+async function searchAndRespond(from, message) {
+  console.log("📩 Received message from", from, ":", message);
 
-async function searchAndRespond(message) {
-  console.log("Received message:", message);
+  const lowerMsg = message.toLowerCase();
 
-  // Dummy Zomato logic — replace with Puppeteer or API-based logic later
-  if (message.toLowerCase().includes("pizza")) {
+  if (lowerMsg.includes("pizza")) {
     const response = `🍕 Top Pizza Places Near You:
 1. Dominos - ETA: 30 mins
 2. Oven Story - ETA: 35 mins
@@ -14,10 +14,10 @@ async function searchAndRespond(message) {
 
 Reply with 1, 2 or 3 to choose.`;
 
-    await sendMessage(response);
+    await sendMessage(from, response);
   } else {
-    await sendMessage("🤖 I can help you find food. Try texting 'I want pizza' 🍕");
+    await sendMessage(from, "🤖 I can help you find food. Try texting 'I want pizza' 🍕");
   }
 }
 
-module.exports = { searchAndRespond };
+module.exports = searchAndRespond;

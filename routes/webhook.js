@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const sendMessage = require('../utils/sendMessage');
-const searchZomato = require('../utils/searchZomato');
+const searchAndRespond = require('../utils/searchAndRespond');
 
 router.post('/', async (req, res) => {
   try {
@@ -25,24 +25,8 @@ router.post('/', async (req, res) => {
     console.log(`💬 Incoming message from ${from}: ${incomingMsg}`);
 
     if (incomingMsg.startsWith('i want')) {
-      const query = incomingMsg.replace('i want', '').trim();
-      console.log(`🔍 Searching for: ${query}`);
-
-      const results = await searchZomato(query);
-      if (!results || results.length === 0) {
-        await sendMessage(from, `😓 Sorry, no results found for "${query}". Try something else!`);
-        return res.status(200).send('No results');
-      }
-
-      let response = `🍽️ Here are the top options near you for "${query}":\n\n`;
-      results.slice(0, 3).forEach((item, index) => {
-        response += `${index + 1}. ${item.name} - ${item.price} - ⭐ ${item.rating}\n${item.link}\n\n`;
-      });
-
-      response += `Reply with the number (1/2/3) to place a simulated order.`;
-
-      await sendMessage(from, response);
-      return res.status(200).send('Results sent');
+      await searchAndRespond(from, incomingMsg);
+      return res.status(200).send('Handled by searchAndRespond');
     } else if (['1', '2', '3'].includes(incomingMsg)) {
       const selection = parseInt(incomingMsg);
       await sendMessage(from, `✅ Great choice! Your order for option ${selection} is being processed. You'll receive updates here on WhatsApp. 🛵`);
